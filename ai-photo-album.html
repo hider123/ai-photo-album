@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 故事相簿 (多圖總結) - Family-Time-Capsule</title>
+    <!-- 引入圖片壓縮套件 -->
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        #appContainer {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 800px;
+            width: 90%;
+            margin: 20px auto;
+            text-align: center;
+        }
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 25px;
+            font-size: 2.2em;
+        }
+        /* 美化檔案選擇器 */
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            border: 2px dashed #4CAF50;
+            border-radius: 8px;
+            padding: 20px 40px;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            transition: background-color 0.3s;
+        }
+        .file-input-wrapper:hover {
+            background-color: #e8f5e9;
+        }
+        .file-input-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .file-input-label {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        #analyzeButton {
+            background-color: #ff9800;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+            margin-top: 20px;
+        }
+        #analyzeButton:hover:not(:disabled) {
+            background-color: #f57c00;
+        }
+        #analyzeButton:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #uploadStatus {
+            margin-top: 25px;
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #555;
+            min-height: 25px;
+        }
+        /* 縮圖預覽區 */
+        #thumbnailContainer {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            min-height: 120px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+        .thumbnail {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        /* 最終結果顯示區 */
+        #finalDescriptionContainer {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #e8f5e9;
+            border-left: 4px solid #4CAF50;
+            text-align: left;
+            display: none;
+        }
+        #finalDescriptionContainer h3 {
+            margin-top: 0;
+        }
+        #finalDescription {
+            white-space: pre-wrap;
+            line-height: 1.7;
+        }
+        .info { color: #1976d2; }
+        .success { color: #2e7d32; }
+        .error { color: #d32f2f; }
+    </style>
+</head>
+<body>
+    <div id="appContainer">
+        <h1>📸 AI 故事相簿 📸</h1>
+        <p>您可以多次新增照片，完成後點擊下方按鈕，讓 AI 為您串連成一個故事！</p>
+        
+        <div class="file-input-wrapper">
+            <span class="file-input-label">點此新增照片</span>
+            <input type="file" id="imageFile" accept="image/*" multiple>
+        </div>
+
+        <div id="thumbnailContainer">
+            <p style="color: #888;">預覽照片將顯示於此</p>
+        </div>
+        
+        <button id="analyzeButton" disabled>產生 AI 總結描述</button>
+
+        <p id="uploadStatus"></p>
+
+        <div id="finalDescriptionContainer">
+            <h3>AI 生成的故事總結：</h3>
+            <p id="finalDescription"></p>
+        </div>
+    </div>
+
+    <script type="module">
+        // 1. 引入 Firebase SDK 模組
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+        // 2. 你的 Firebase 專案配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyAoVd0MJy5TjwuEF8xPntGmyu3tpHEUuts",
+            authDomain: "family-time-capsule-ac438.firebaseapp.com",
+            projectId: "family-time-capsule-ac438",
+            storageBucket: "family-time-capsule-ac438.firebasestorage.app",
+            messagingSenderId: "717537356458",
+            appId: "1:717537356458:web:59caf3c60cd45d2529bed3"
+        };
+
+        // 3. 初始化服務
+        const app = initializeApp(firebaseConfig);
+        const storage = getStorage(app);
+        
+        const geminiApiKey = ""; // 由環境提供
+        const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
+
+        // 4. 取得 HTML 元素
+        const imageFileInput = document.getElementById('imageFile');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const uploadStatusElement = document.getElementById('uploadStatus');
+        const thumbnailContainer = document.getElementById('thumbnailContainer');
+        const finalDescriptionContainer = document.getElementById('finalDescriptionContainer');
+        const finalDescriptionElement = document.getElementById('finalDescription');
+
+        let selectedFiles = []; // 用來儲存所有選擇的檔案
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // 當使用者選擇檔案時觸發
+        imageFileInput.addEventListener('change', (event) => {
+            const files = event.target.files;
+            if (files.length === 0) return;
+
+            // 第一次新增檔案時，清空預設文字
+            if (thumbnailContainer.querySelector('p')) {
+                thumbnailContainer.innerHTML = '';
+            }
+
+            for (const file of files) {
+                selectedFiles.push(file);
+                // 顯示縮圖
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'thumbnail';
+                    thumbnailContainer.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            }
+
+            analyzeButton.disabled = false;
+            uploadStatusElement.textContent = `已選擇 ${selectedFiles.length} 張照片，可繼續新增或點擊按鈕產生描述。`;
+            uploadStatusElement.className = 'info';
+            finalDescriptionContainer.style.display = 'none'; // 隱藏舊結果
+        });
+
+        // 當點擊「產生描述」按鈕時觸發
+        analyzeButton.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) {
+                uploadStatusElement.textContent = '⛔ 請先新增至少一張照片！';
+                uploadStatusElement.className = 'error';
+                return;
+            }
+
+            analyzeButton.disabled = true;
+            uploadStatusElement.textContent = '🧠 正在處理所有照片，請稍候...';
+            uploadStatusElement.className = 'info';
+            finalDescriptionContainer.style.display = 'none';
+
+            try {
+                const aiPayloadParts = [
+                    { text: "這是一系列的照片，請用繁體中文，以一個朋友分享生活般的溫暖、生動語氣，將這些照片串連起來，寫成一段總結性的故事或描述，捕捉整個事件或場景的氛圍。不需要逐一描述每張照片，而是融合成一個整體的敘述。\n\n參考資訊：目前時間是 2025年8月13日，地點在台灣高雄市鳳山區。" }
+                ];
+
+                // 循序處理壓縮、上傳、並準備 AI payload
+                for (let i = 0; i < selectedFiles.length; i++) {
+                     uploadStatusElement.textContent = `🧠 正在處理第 ${i + 1} / ${selectedFiles.length} 張照片...`;
+                    const file = selectedFiles[i];
+                    
+                    // 壓縮
+                    const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
+                    const compressedFile = await imageCompression(file, options);
+                    
+                    // 上傳 (可選，但保留此功能)
+                    const storageRef = ref(storage, `images/${Date.now()}_${compressedFile.name}`);
+                    await uploadBytes(storageRef, compressedFile);
+                    
+                    // 準備 AI 資料
+                    const base64ImageData = await fileToBase64(compressedFile);
+                    aiPayloadParts.push({
+                        inlineData: { mimeType: compressedFile.type, data: base64ImageData }
+                    });
+                }
+                
+                // 一次性呼叫 AI
+                uploadStatusElement.textContent = '🤖 AI 正在生成故事中...';
+                const payload = { contents: [{ parts: aiPayloadParts }] };
+                
+                const response = await fetch(geminiApiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error(`AI 服務回應錯誤: ${response.statusText}`);
+                const result = await response.json();
+                const description = result.candidates[0].content.parts[0].text;
+
+                // 顯示最終結果
+                finalDescriptionElement.textContent = description;
+                finalDescriptionContainer.style.display = 'block';
+                uploadStatusElement.textContent = '✅ AI 故事生成完畢！';
+                uploadStatusElement.className = 'success';
+
+                // 清空準備區，以便下次使用
+                selectedFiles = [];
+                thumbnailContainer.innerHTML = '<p style="color: #888;">預覽照片將顯示於此</p>';
+                imageFileInput.value = '';
+
+            } catch (error) {
+                console.error("處理失敗:", error);
+                uploadStatusElement.textContent = `❌ 處理失敗: ${error.message}`;
+                uploadStatusElement.className = 'error';
+            } finally {
+                analyzeButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
