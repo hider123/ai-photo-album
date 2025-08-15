@@ -41,10 +41,11 @@
             padding: 20px 40px;
             cursor: pointer;
             background-color: #f9f9f9;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, border-color 0.3s;
         }
-        .file-input-wrapper:hover {
+        .file-input-wrapper:hover, .file-input-wrapper.dragover {
             background-color: #e8f5e9;
+            border-color: #388e3c;
         }
         .file-input-wrapper input[type=file] {
             font-size: 100px;
@@ -58,8 +59,13 @@
             color: #4CAF50;
             font-weight: bold;
         }
-        #analyzeButton {
-            background-color: #ff9800;
+        .button-group {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        .button {
             color: white;
             padding: 12px 25px;
             border: none;
@@ -67,12 +73,22 @@
             cursor: pointer;
             font-size: 1.1em;
             transition: background-color 0.3s ease;
-            margin-top: 20px;
+        }
+        #analyzeButton {
+            background-color: #ff9800;
         }
         #analyzeButton:hover:not(:disabled) {
             background-color: #f57c00;
         }
-        #analyzeButton:disabled {
+        /* 新增：清除按鈕 */
+        #clearButton {
+            background-color: #757575;
+            display: none; /* 預設隱藏 */
+        }
+        #clearButton:hover:not(:disabled) {
+            background-color: #616161;
+        }
+        .button:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
         }
@@ -160,6 +176,12 @@
             text-align: left;
             display: none;
         }
+        /* 新增：標題樣式 */
+        #finalTitle {
+            text-align: center;
+            color: #388e3c;
+            margin-bottom: 20px;
+        }
         #finalDescriptionContainer h3 {
             margin-top: 0;
         }
@@ -182,11 +204,14 @@
             white-space: pre-wrap;
             line-height: 1.7;
         }
-        /* 新增：時間軸樣式 */
-        #timelineContainer {
+        /* 時間軸與地點資訊樣式 */
+        .info-section {
             margin-top: 25px;
+            padding: 15px;
             padding-top: 15px;
             border-top: 1px solid #ccc;
+            background-color: rgba(255,255,255,0.5);
+            border-radius: 8px;
         }
         .timeline-item {
             position: relative;
@@ -212,10 +237,67 @@
             font-weight: bold;
             color: #333;
             display: block; /* 讓時間獨佔一行 */
-            margin-bottom: 4px;
+        }
+        .timeline-location {
+            font-size: 0.9em;
+            color: #757575;
+            display: block;
+            margin-top: 2px;
+            margin-bottom: 6px;
         }
         .timeline-event {
             color: #555;
+        }
+        #finalLocation {
+             line-height: 1.6;
+        }
+        /* 新增：錯誤訊息 Modal 樣式 */
+        .modal {
+            display: none; /* 預設隱藏 */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            text-align: left;
+            position: relative;
+            animation: fadeInModal 0.3s;
+        }
+        @keyframes fadeInModal {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-close-btn {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .modal-close-btn:hover,
+        .modal-close-btn:focus {
+            color: black;
+        }
+        .modal-content h3 {
+            color: #d32f2f;
+            margin-top: 0;
         }
         .info { color: #1976d2; }
         .success { color: #2e7d32; }
@@ -227,8 +309,8 @@
         <h1>📸 AI 故事相簿 📸</h1>
         <p>您可以多次新增照片，完成後點擊下方按鈕，讓 AI 為您串連成一個故事！</p>
         
-        <div class="file-input-wrapper">
-            <span class="file-input-label">點此新增照片</span>
+        <div class="file-input-wrapper" id="dropZone">
+            <span class="file-input-label">點此或拖曳照片到此處</span>
             <input type="file" id="imageFile" accept="image/*" multiple>
         </div>
 
@@ -236,15 +318,29 @@
             <p style="color: #888;">預覽照片將顯示於此</p>
         </div>
         
-        <button id="analyzeButton" disabled>產生 AI 總結描述</button>
+        <div class="button-group">
+            <button id="analyzeButton" class="button" disabled>產生 AI 總結描述</button>
+            <button id="clearButton" class="button">重新開始</button>
+        </div>
 
         <p id="uploadStatus"></p>
 
         <div id="finalDescriptionContainer">
+            <h2 id="finalTitle"></h2>
             <h3>AI 生成的故事總結：</h3>
             <div id="finalPhotosContainer"></div>
             <p id="finalDescription"></p>
-            <div id="timelineContainer"></div>
+            <div id="timelineContainer" class="info-section"></div>
+            <div id="finalLocationContainer" class="info-section"></div>
+        </div>
+    </div>
+
+    <!-- 新增：錯誤訊息 Modal HTML -->
+    <div id="errorModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close-btn">&times;</span>
+            <h3>發生錯誤</h3>
+            <p id="modalErrorMessage"></p>
         </div>
     </div>
 
@@ -273,15 +369,36 @@
         // 4. 取得 HTML 元素
         const imageFileInput = document.getElementById('imageFile');
         const analyzeButton = document.getElementById('analyzeButton');
+        const clearButton = document.getElementById('clearButton');
         const uploadStatusElement = document.getElementById('uploadStatus');
         const thumbnailContainer = document.getElementById('thumbnailContainer');
         const finalDescriptionContainer = document.getElementById('finalDescriptionContainer');
+        const finalTitleElement = document.getElementById('finalTitle');
         const finalPhotosContainer = document.getElementById('finalPhotosContainer');
         const finalDescriptionElement = document.getElementById('finalDescription');
         const timelineContainer = document.getElementById('timelineContainer');
+        const finalLocationContainer = document.getElementById('finalLocationContainer');
+        const errorModal = document.getElementById('errorModal');
+        const modalErrorMessage = document.getElementById('modalErrorMessage');
+        const modalCloseBtn = document.querySelector('.modal-close-btn');
+        const dropZone = document.getElementById('dropZone');
 
-        let photoData = []; // 修改：儲存包含 EXIF 資料的物件
+        let photoData = []; // 儲存所有選擇的檔案物件
 
+        // --- Modal 相關函式 ---
+        function showErrorModal(message) {
+            modalErrorMessage.textContent = message;
+            errorModal.style.display = 'flex';
+        }
+        function hideErrorModal() {
+            errorModal.style.display = 'none';
+        }
+        modalCloseBtn.onclick = hideErrorModal;
+        window.onclick = (event) => {
+            if (event.target == errorModal) hideErrorModal();
+        };
+
+        // --- 核心功能函式 ---
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -293,7 +410,6 @@
         
         function renderThumbnails() {
             thumbnailContainer.innerHTML = ''; 
-
             if (photoData.length === 0) {
                 thumbnailContainer.innerHTML = '<p style="color: #888;">預覽照片將顯示於此</p>';
                 analyzeButton.disabled = true;
@@ -304,27 +420,15 @@
             photoData.forEach((data, index) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'thumbnail-wrapper';
-
-                const img = document.createElement('img');
-                img.className = 'thumbnail';
-                img.src = data.previewUrl;
-                wrapper.appendChild(img);
-
-                const orderBadge = document.createElement('span');
-                orderBadge.className = 'thumbnail-order';
-                orderBadge.textContent = index + 1;
-                wrapper.appendChild(orderBadge);
-
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'thumbnail-remove';
-                removeBtn.innerHTML = '&times;';
-                removeBtn.title = '移除這張照片';
-                removeBtn.onclick = () => {
+                wrapper.innerHTML = `
+                    <img class="thumbnail" src="${data.previewUrl}" />
+                    <span class="thumbnail-order">${index + 1}</span>
+                    <button class="thumbnail-remove" title="移除這張照片">&times;</button>
+                `;
+                wrapper.querySelector('.thumbnail-remove').onclick = () => {
                     photoData.splice(index, 1); 
                     renderThumbnails(); 
                 };
-                wrapper.appendChild(removeBtn);
-
                 thumbnailContainer.appendChild(wrapper);
             });
 
@@ -333,9 +437,8 @@
             uploadStatusElement.className = 'info';
         }
 
-        imageFileInput.addEventListener('change', async (event) => {
-            const files = event.target.files;
-            if (files.length === 0) return;
+        async function handleFileSelection(files) {
+            if (!files || files.length === 0) return;
 
             uploadStatusElement.textContent = '正在讀取照片資訊...';
             uploadStatusElement.className = 'info';
@@ -350,38 +453,54 @@
                     });
                 } catch (e) {
                     console.warn(`無法讀取檔案 ${file.name} 的 EXIF 資料:`, e);
-                    photoData.push({
-                        file: file,
-                        exif: {},
-                        previewUrl: URL.createObjectURL(file)
-                    });
+                    photoData.push({ file: file, exif: {}, previewUrl: URL.createObjectURL(file) });
                 }
             }
             
-            // 根據拍攝時間自動排序
             photoData.sort((a, b) => {
                 const timeA = a.exif['DateTimeOriginal']?.description || 0;
                 const timeB = b.exif['DateTimeOriginal']?.description || 0;
-                // 將沒有時間的排在最後
                 if (timeA === 0 && timeB !== 0) return 1;
                 if (timeA !== 0 && timeB === 0) return -1;
                 return new Date(timeA) - new Date(timeB);
             });
 
             renderThumbnails(); 
-
             finalDescriptionContainer.style.display = 'none'; 
             imageFileInput.value = ''; 
+        }
+
+        // --- 事件監聽器 ---
+        imageFileInput.addEventListener('change', (event) => handleFileSelection(event.target.files));
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFileSelection(e.dataTransfer.files);
+        });
+
+        clearButton.addEventListener('click', () => {
+            photoData = [];
+            renderThumbnails();
+            finalDescriptionContainer.style.display = 'none';
+            clearButton.style.display = 'none';
         });
 
         analyzeButton.addEventListener('click', async () => {
             if (photoData.length === 0) {
-                uploadStatusElement.textContent = '⛔ 請先新增至少一張照片！';
-                uploadStatusElement.className = 'error';
+                showErrorModal('請先新增至少一張照片！');
                 return;
             }
 
             analyzeButton.disabled = true;
+            clearButton.style.display = 'none';
             uploadStatusElement.textContent = '🧠 正在處理所有照片，請稍候...';
             uploadStatusElement.className = 'info';
             finalDescriptionContainer.style.display = 'none';
@@ -389,9 +508,12 @@
             const finalImageUrls = []; 
 
             try {
+                if (!firebaseConfig.storageBucket) {
+                    throw new Error("Firebase 設定錯誤：storageBucket 未被設定，無法上傳檔案。請檢查 firebaseConfig 物件。");
+                }
+
                 const aiPayloadParts = [
-                    // 更新 AI 指令
-                    { text: "這是一系列按順序排列的照片。我會提供每張照片的內容和它的真實拍攝時間（如果有的話）。請你扮演一個溫暖的朋友，完成兩項任務：\n1. **故事總結**：將這些照片串連起來，寫成一段總結性的故事。請參考我提供的拍攝時間來建構故事的時序，讓故事更貼近真實。\n2. **時間軸列表**：在故事結束後，請另起一行並加上標記「---TIMELINE---」。接著，為每一張照片生成一個時間軸項目，格式為「時間：事件描述」。如果我提供的拍攝時間是「未知，請推測」，請你根據畫面推測一個大概的時間（例如：上午、傍晚）來使用。請確保每個時間軸項目都以換行分隔。\n\n參考資訊：目前時間是 2025年8月14日，地點在台灣高雄市鳳山區。" }
+                    { text: "這是一系列按順序排列的照片。我會提供每張照片的內容、它的真實拍攝時間，以及可能的GPS地理位置。請你扮演一個溫暖的朋友，完成四項任務：\n1. **故事標題**：首先，請為這個故事取一個溫暖且吸引人的標題。請在標題前後加上標記「---TITLE---」。\n2. **故事總結**：將這些照片串連起來，寫成一段總結性的故事。\n3. **時間軸列表**：在故事結束後，另起一行並加上標記「---TIMELINE---」。接著，為每一張照片生成一個時間軸項目，格式為「時間：事件描述」。\n    * **重要**：如果我提供的拍攝時間是「未知」，請你**務必**根據畫面推測一個大概的時間（例如：上午、中午、傍晚）來使用，**不要在回應中使用「未知時間」**。\n    * **重要**：每個「事件描述」請**限制在100個字以內**。\n4. **地點總結**：在時間軸列表後，另起一行並加上標記「---LOCATION---」。接著，根據所有照片的資訊（特別是GPS座標），請盡力辨識出一個**具體的景點、店家或街道名稱**（例如：「高雄衛武營國家藝術文化中心」或「青年路二段」）。如果無法辨識出具體名稱，再根據畫面推測一個大概的區域。\n\n請務必依照此順序和標記回傳結果。" }
                 ];
 
                 for (let i = 0; i < photoData.length; i++) {
@@ -408,9 +530,15 @@
                     
                     const base64ImageData = await fileToBase64(compressedFile);
                     
-                    // 修改：如果時間未知，明確告知 AI 去推測
-                    const shootingTime = data.exif['DateTimeOriginal']?.description || '未知，請推測';
-                    aiPayloadParts.push({ text: `--- 照片 ${i + 1} (拍攝時間: ${shootingTime}) ---` });
+                    const shootingTime = data.exif['DateTimeOriginal']?.description || '未知';
+                    let locationInfo = '未知';
+                    if (data.exif.GPSLatitude && data.exif.GPSLongitude) {
+                        const lat = data.exif.GPSLatitude.description.toFixed(4);
+                        const lon = data.exif.GPSLongitude.description.toFixed(4);
+                        locationInfo = `緯度 ${lat}, 經度 ${lon}`;
+                    }
+
+                    aiPayloadParts.push({ text: `--- 照片 ${i + 1} (拍攝時間: ${shootingTime}) (拍攝地點: ${locationInfo}) ---` });
                     aiPayloadParts.push({
                         inlineData: { mimeType: compressedFile.type, data: base64ImageData }
                     });
@@ -429,17 +557,34 @@
                 const result = await response.json();
                 let fullText = result.candidates[0].content.parts[0].text;
 
-                // --- 解析故事和時間軸 ---
-                let story = fullText;
-                let timelineItems = [];
+                // --- 解析標題、故事、時間軸、地點 ---
+                let story = fullText, timelineStr = '', locationStr = '', titleStr = '';
+                const titleMarker = "---TITLE---";
                 const timelineMarker = "---TIMELINE---";
-                const timelineIndex = fullText.indexOf(timelineMarker);
+                const locationMarker = "---LOCATION---";
 
-                if (timelineIndex !== -1) {
-                    story = fullText.substring(0, timelineIndex).trim();
-                    const timelineStr = fullText.substring(timelineIndex + timelineMarker.length).trim();
-                    timelineItems = timelineStr.split('\n').filter(item => item.trim() !== '');
+                const titleStartIndex = fullText.indexOf(titleMarker);
+                const titleEndIndex = fullText.lastIndexOf(titleMarker);
+                if (titleStartIndex !== -1 && titleEndIndex > titleStartIndex) {
+                    titleStr = fullText.substring(titleStartIndex + titleMarker.length, titleEndIndex).trim();
+                    fullText = fullText.substring(0, titleStartIndex) + fullText.substring(titleEndIndex + titleMarker.length);
                 }
+
+                const locationIndex = fullText.indexOf(locationMarker);
+                if (locationIndex !== -1) {
+                    locationStr = fullText.substring(locationIndex + locationMarker.length).trim();
+                    fullText = fullText.substring(0, locationIndex);
+                }
+
+                const timelineIndex = fullText.indexOf(timelineMarker);
+                if (timelineIndex !== -1) {
+                    timelineStr = fullText.substring(timelineIndex + timelineMarker.length).trim();
+                    story = fullText.substring(0, timelineIndex).trim();
+                } else {
+                    story = fullText.trim();
+                }
+                
+                const timelineItems = timelineStr.split('\n').filter(item => item.trim() !== '');
 
                 // --- 顯示最終結果 ---
                 finalPhotosContainer.innerHTML = ''; 
@@ -450,6 +595,7 @@
                     finalPhotosContainer.appendChild(img);
                 });
 
+                finalTitleElement.textContent = titleStr;
                 finalDescriptionElement.textContent = story;
                 
                 timelineContainer.innerHTML = ''; 
@@ -458,17 +604,21 @@
                     timelineItems.forEach(item => {
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'timeline-item';
-                        // 尋找第一個冒號來分割，以處理時間本身也包含冒號的情況
                         const separatorIndex = item.indexOf('：');
                         if (separatorIndex > -1) {
                             const time = item.substring(0, separatorIndex);
                             const event = item.substring(separatorIndex + 1);
                             itemDiv.innerHTML = `<span class="timeline-time">${time}：</span><div class="timeline-event">${event}</div>`;
                         } else {
-                            itemDiv.innerHTML = `<div class="timeline-event">${item}</div>`; // 如果沒有冒號，則全部視為事件
+                            itemDiv.innerHTML = `<div class="timeline-event">${item}</div>`;
                         }
                         timelineContainer.appendChild(itemDiv);
                     });
+                }
+
+                finalLocationContainer.innerHTML = '';
+                if(locationStr) {
+                    finalLocationContainer.innerHTML = `<h3>地點資訊：</h3><p id="finalLocation">${locationStr}</p>`;
                 }
                 
                 finalDescriptionContainer.style.display = 'block';
@@ -477,11 +627,13 @@
 
                 photoData = [];
                 renderThumbnails(); 
+                clearButton.style.display = 'inline-block';
 
             } catch (error) {
                 console.error("處理失敗:", error);
-                uploadStatusElement.textContent = `❌ 處理失敗: ${error.message}`;
+                uploadStatusElement.textContent = `❌ 處理失敗，請查看跳出視窗。`;
                 uploadStatusElement.className = 'error';
+                showErrorModal(error.message);
             } finally {
                 analyzeButton.disabled = false;
             }
