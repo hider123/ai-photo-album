@@ -81,6 +81,20 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             gap: 10px;
+            align-items: start; /* Align items to the top */
+        }
+        .date-header {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--primary-color);
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .date-header:first-of-type {
+            margin-top: 0;
         }
         .thumbnail-wrapper {
             position: relative;
@@ -105,19 +119,35 @@
             font-size: 12px; font-weight: bold;
             border: 2px solid white;
         }
-        .thumbnail-remove {
-            position: absolute;
-            top: -8px; right: -8px;
-            background: #f44336;
-            color: white;
+        .thumbnail-action-btn {
             border: none;
             border-radius: 50%;
             width: 24px; height: 24px;
             display: flex; justify-content: center; align-items: center;
             cursor: pointer;
-            font-size: 18px; line-height: 24px; padding: 0;
+            font-size: 16px; line-height: 24px; padding: 0;
             font-weight: bold;
             transition: background-color 0.2s;
+            color: white;
+            position: absolute;
+        }
+        .thumbnail-remove {
+            background: #f44336;
+            top: -8px; right: -8px;
+        }
+        .thumbnail-edit-date {
+            background: var(--edit-color);
+            bottom: -8px; right: -8px;
+            font-size: 14px;
+        }
+        .thumbnail-date-label {
+            font-size: 12px;
+            color: var(--subtle-text-color);
+            margin-top: 4px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .controls-wrapper {
             display: flex;
@@ -154,28 +184,26 @@
         }
         #analyzeButton { background-color: var(--secondary-color); }
         #analyzeButton:hover:not(:disabled) { background-color: #f57c00; }
-        #clearButton { background-color: #757575; display: none; }
+        #clearButton { background-color: #757575; }
         #clearButton:hover:not(:disabled) { background-color: #616161; }
-        #editButton { background-color: var(--edit-color); display: none; }
+        #editButton { background-color: var(--edit-color); }
         #editButton:hover:not(:disabled) { background-color: #1976D2; }
         .button:disabled { background-color: #cccccc; cursor: not-allowed; }
         #uploadStatus { text-align: center; margin-top: 20px; font-weight: 500; min-height: 20px; }
 
-        /* --- 最終結果樣式 --- */
         #storyTimelineContainer { display: none; }
         .timeline-header { text-align: center; margin-bottom: 30px; }
         .timeline-header h2 { color: var(--primary-color); margin-top: 0; }
         .timeline-header p { line-height: 1.7; font-size: 1.1em; }
         .timeline-entry { position: relative; padding-left: 30px; margin-bottom: 30px; border-left: 3px solid #e0e0e0; }
         .timeline-point { position: absolute; top: 0; left: -11px; width: 20px; height: 20px; background-color: var(--primary-color); border: 4px solid var(--background-color); border-radius: 50%; }
+        .timeline-middle { position: absolute; top: 0; left: 0; width: 100%; }
         .timeline-entry-content img { width: 100%; border-radius: 8px; margin-bottom: 15px; }
         .timeline-entry-meta { font-size: 0.9em; color: var(--subtle-text-color); margin-bottom: 10px; }
         .timeline-entry-meta span { display: block; margin-bottom: 5px; }
         .timeline-entry-description { line-height: 1.6; }
 
-        .editable {
-            transition: background-color 0.3s, box-shadow 0.3s;
-        }
+        .editable { transition: background-color 0.3s, box-shadow 0.3s; }
         .edit-mode .editable {
             background-color: #fffde7;
             outline: 1px solid var(--secondary-color);
@@ -188,10 +216,74 @@
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
         .modal-content { background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); text-align: left; position: relative; }
         .modal-close-btn { color: #aaa; position: absolute; top: 10px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; }
-        .modal-content h3 { color: #d32f2f; margin-top: 0; }
-        .info { color: #1976d2; }
-        .success { color: #2e7d32; }
-        .error { color: #d32f2f; }
+        .modal-content h3 { margin-top: 0; }
+        .modal-content .error { color: #d32f2f; }
+        #datePickerInput { width: calc(100% - 24px); padding: 10px; margin: 15px 0; border: 1px solid #ddd; border-radius: 6px; }
+        #saveDateButton { background-color: var(--primary-color); width: 100%; }
+
+        /* NEW: Styles for the summary timeline */
+        .summary-timeline-container {
+            margin-bottom: 40px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 12px;
+            border: 1px solid #eee;
+        }
+        .summary-timeline-container h3 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .summary-timeline {
+            display: flex;
+            overflow-x: auto;
+            padding-bottom: 15px;
+            position: relative;
+        }
+        .summary-timeline::-webkit-scrollbar { height: 5px; }
+        .summary-timeline::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        .summary-timeline::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 20px;
+            right: 20px;
+            height: 2px;
+            background-color: #ddd;
+            z-index: 1;
+        }
+        .summary-event {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            padding: 0 15px;
+            min-width: 150px;
+        }
+        .summary-point {
+            width: 12px;
+            height: 12px;
+            background-color: var(--secondary-color);
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 3px #ddd;
+            flex-shrink: 0;
+        }
+        .summary-details {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 0.85em;
+        }
+        .summary-date {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        .summary-time, .summary-location {
+            color: var(--subtle-text-color);
+        }
+
     </style>
 </head>
 <body>
@@ -220,11 +312,14 @@
                             </select>
                         </div>
                         <button id="analyzeButton" class="button" disabled>產生 AI 故事</button>
-                        <div class="button-group">
-                             <button id="editButton" class="button">編輯故事</button>
-                             <button id="clearButton" class="button">重新開始</button>
-                        </div>
                     </div>
+                </div>
+            </div>
+            
+            <div id="resultControls" class="section-card" style="display: none;">
+                <div class="button-group">
+                     <button id="editButton" class="button">編輯故事</button>
+                     <button id="clearButton" class="button">重新開始</button>
                 </div>
             </div>
 
@@ -236,14 +331,24 @@
     <div id="errorModal" class="modal">
         <div class="modal-content">
             <span class="modal-close-btn">&times;</span>
-            <h3>發生錯誤</h3>
+            <h3 class="error">發生錯誤</h3>
             <p id="modalErrorMessage"></p>
         </div>
     </div>
 
+    <div id="dateEditorModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close-btn" id="dateEditorCloseBtn">&times;</span>
+            <h3>編輯照片日期</h3>
+            <p>為這張照片選擇一個日期：</p>
+            <input type="date" id="datePickerInput">
+            <button id="saveDateButton" class="button">儲存日期</button>
+        </div>
+    </div>
+
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAoVd0MJy5TjwuEF8xPntGmyu3tpHEUuts",
@@ -260,6 +365,7 @@
         const geminiApiKey = "";
         const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
 
+        // Element selectors
         const imageFileInput = document.getElementById('imageFile');
         const analyzeButton = document.getElementById('analyzeButton');
         const clearButton = document.getElementById('clearButton');
@@ -268,26 +374,60 @@
         const uploadStatusElement = document.getElementById('uploadStatus');
         const thumbnailContainer = document.getElementById('thumbnailContainer');
         const storyTimelineContainer = document.getElementById('storyTimelineContainer');
-        const errorModal = document.getElementById('errorModal');
-        const modalErrorMessage = document.getElementById('modalErrorMessage');
-        const modalCloseBtn = document.querySelector('.modal-close-btn');
         const dropZone = document.getElementById('dropZone');
         const setupSection = document.getElementById('setupSection');
+        const resultControls = document.getElementById('resultControls');
+        // Modals
+        const errorModal = document.getElementById('errorModal');
+        const modalErrorMessage = document.getElementById('modalErrorMessage');
+        const errorModalCloseBtn = errorModal.querySelector('.modal-close-btn');
+        const dateEditorModal = document.getElementById('dateEditorModal');
+        const dateEditorCloseBtn = document.getElementById('dateEditorCloseBtn');
+        const datePickerInput = document.getElementById('datePickerInput');
+        const saveDateButton = document.getElementById('saveDateButton');
 
         let photoData = [];
+        let existingPhotoIdentifiers = new Set();
+        let currentEditingIdentifier = null;
 
+        // --- Modal Handling ---
         function showErrorModal(message) {
             modalErrorMessage.textContent = message;
             errorModal.style.display = 'flex';
         }
-        function hideErrorModal() {
-            errorModal.style.display = 'none';
+        function hideErrorModal() { errorModal.style.display = 'none'; }
+        errorModalCloseBtn.onclick = hideErrorModal;
+        
+        function openDateEditor(identifier) {
+            currentEditingIdentifier = identifier;
+            datePickerInput.value = '';
+            dateEditorModal.style.display = 'flex';
         }
-        modalCloseBtn.onclick = hideErrorModal;
-        window.onclick = (event) => {
-            if (event.target == errorModal) hideErrorModal();
+        function hideDateEditor() { dateEditorModal.style.display = 'none'; }
+        dateEditorCloseBtn.onclick = hideDateEditor;
+        saveDateButton.onclick = () => {
+            const newDate = datePickerInput.value;
+            if (!newDate) {
+                showErrorModal("請選擇一個有效的日期。");
+                return;
+            }
+            const photoToUpdate = photoData.find(p => p.identifier === currentEditingIdentifier);
+            if (photoToUpdate) {
+                photoToUpdate.exif['DateTimeOriginal'] = {
+                    description: `${newDate.replace(/-/g, ':')} 00:00:00`
+                };
+                photoToUpdate.wasDateUnknown = false; 
+                sortAndRenderThumbnails();
+            }
+            hideDateEditor();
         };
 
+        window.onclick = (event) => {
+            if (event.target == errorModal) hideErrorModal();
+            if (event.target == dateEditorModal) hideDateEditor();
+        };
+
+        // --- File & Photo Logic ---
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -296,7 +436,47 @@
                 reader.onerror = error => reject(error);
             });
         }
+
+        async function generateContentIdentifier(file) {
+            const slice = file.slice(0, 256 * 1024); 
+            const buffer = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsArrayBuffer(slice);
+            });
+            const view = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < view.length; i++) {
+                binary += String.fromCharCode(view[i]);
+            }
+            return btoa(binary) + file.size;
+        }
         
+        function removePhoto(identifier) {
+            const indexToRemove = photoData.findIndex(p => p.identifier === identifier);
+            if (indexToRemove > -1) {
+                const removedItem = photoData[indexToRemove];
+                existingPhotoIdentifiers.delete(removedItem.identifier);
+                photoData.splice(indexToRemove, 1);
+                renderThumbnails();
+            }
+        }
+
+        function sortAndRenderThumbnails() {
+            photoData.sort((a, b) => {
+                const timeStrA = a.exif['DateTimeOriginal']?.description || '';
+                const timeStrB = b.exif['DateTimeOriginal']?.description || '';
+                if (!timeStrA && !timeStrB) return 0;
+                if (!timeStrA) return 1;
+                if (!timeStrB) return -1;
+                const parsableDateA = timeStrA.replace(/:/g, '-').replace(' ', 'T');
+                const parsableDateB = timeStrB.replace(/:/g, '-').replace(' ', 'T');
+                return new Date(parsableDateA) - new Date(parsableDateB);
+            });
+            renderThumbnails();
+        }
+
         function renderThumbnails() {
             thumbnailContainer.innerHTML = ''; 
             if (photoData.length === 0) {
@@ -305,19 +485,58 @@
                 return;
             }
 
-            photoData.forEach((data, index) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'thumbnail-wrapper';
-                wrapper.innerHTML = `
-                    <img class="thumbnail" src="${data.previewUrl}" />
-                    <span class="thumbnail-order">${index + 1}</span>
-                    <button class="thumbnail-remove" title="移除這張照片">&times;</button>
-                `;
-                wrapper.querySelector('.thumbnail-remove').onclick = () => {
-                    photoData.splice(index, 1); 
-                    renderThumbnails(); 
-                };
-                thumbnailContainer.appendChild(wrapper);
+            const groupedPhotos = photoData.reduce((acc, photo) => {
+                let dateStr = '日期未知';
+                const timeStr = photo.exif['DateTimeOriginal']?.description;
+                if (timeStr) {
+                    dateStr = timeStr.split(' ')[0].replace(/:/g, '-');
+                }
+                if (!acc[dateStr]) { acc[dateStr] = []; }
+                acc[dateStr].push(photo);
+                return acc;
+            }, {});
+
+            const sortedDates = Object.keys(groupedPhotos).sort((a, b) => {
+                if (a === '日期未知') return 1;
+                if (b === '日期未知') return -1;
+                return new Date(a) - new Date(b);
+            });
+
+            let overallIndex = 0;
+            sortedDates.forEach(date => {
+                const photosOnDate = groupedPhotos[date];
+                const dateHeader = document.createElement('h3');
+                dateHeader.className = 'date-header';
+                dateHeader.textContent = date;
+                thumbnailContainer.appendChild(dateHeader);
+
+                photosOnDate.forEach(data => {
+                    const itemContainer = document.createElement('div');
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'thumbnail-wrapper';
+                    wrapper.innerHTML = `
+                        <img class="thumbnail" src="${data.previewUrl}" />
+                        <span class="thumbnail-order">${overallIndex + 1}</span>
+                        <button class="thumbnail-action-btn thumbnail-remove" data-identifier="${data.identifier}" title="移除這張照片">✖</button>
+                    `;
+                    if (date === '日期未知') {
+                        const editBtn = document.createElement('button');
+                        editBtn.className = 'thumbnail-action-btn thumbnail-edit-date';
+                        editBtn.title = '編輯日期';
+                        editBtn.innerHTML = '✏️';
+                        editBtn.dataset.identifier = data.identifier;
+                        wrapper.appendChild(editBtn);
+                    }
+                    
+                    const dateLabel = document.createElement('div');
+                    dateLabel.className = 'thumbnail-date-label';
+                    dateLabel.textContent = date;
+
+                    itemContainer.appendChild(wrapper);
+                    itemContainer.appendChild(dateLabel);
+                    thumbnailContainer.appendChild(itemContainer);
+                    overallIndex++;
+                });
             });
 
             analyzeButton.disabled = false;
@@ -327,65 +546,80 @@
 
         async function handleFileSelection(files) {
             if (!files || files.length === 0) return;
-
-            uploadStatusElement.textContent = '正在讀取照片資訊...';
+            uploadStatusElement.textContent = '正在讀取照片資訊並檢查重複項目...';
             uploadStatusElement.className = 'info';
+            let duplicatesFound = 0;
 
-            for (const file of files) {
+            for (const file of Array.from(files)) {
                 try {
-                    const tags = await ExifReader.load(file);
-                    photoData.push({ file: file, exif: tags, previewUrl: URL.createObjectURL(file) });
+                    const fileIdentifier = await generateContentIdentifier(file);
+                    if (existingPhotoIdentifiers.has(fileIdentifier)) {
+                        duplicatesFound++;
+                        continue; 
+                    }
+                    let tags = {};
+                    try {
+                        tags = await ExifReader.load(file);
+                    } catch (exifError) {
+                        console.warn(`無法讀取 ${file.name} 的 EXIF 資料，但仍會加入照片。`, exifError);
+                    }
+                    existingPhotoIdentifiers.add(fileIdentifier);
+                    const wasDateUnknown = !tags['DateTimeOriginal'];
+                    photoData.push({ file, exif: tags, previewUrl: URL.createObjectURL(file), identifier: fileIdentifier, wasDateUnknown });
                 } catch (e) {
-                    photoData.push({ file: file, exif: {}, previewUrl: URL.createObjectURL(file) });
+                    console.error(`處理檔案 ${file.name} 時發生錯誤。`, e);
                 }
             }
             
-            photoData.sort((a, b) => {
-                const timeA = a.exif['DateTimeOriginal']?.description || 0;
-                const timeB = b.exif['DateTimeOriginal']?.description || 0;
-                if (timeA === 0 && timeB !== 0) return 1;
-                if (timeA !== 0 && timeB === 0) return -1;
-                return new Date(timeA) - new Date(timeB);
-            });
-
-            renderThumbnails(); 
+            if (duplicatesFound > 0) {
+                uploadStatusElement.textContent = `讀取完畢，已自動過濾 ${duplicatesFound} 張重複的照片。`;
+            } else {
+                 uploadStatusElement.textContent = '讀取完畢！';
+            }
+            
+            sortAndRenderThumbnails();
             storyTimelineContainer.style.display = 'none'; 
             imageFileInput.value = ''; 
         }
 
+        // --- Event Listeners ---
         dropZone.addEventListener('click', () => imageFileInput.click());
         imageFileInput.addEventListener('change', (event) => handleFileSelection(event.target.files));
         
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
-        });
+        ['dragover', 'drop'].forEach(eventName => dropZone.addEventListener(eventName, e => e.preventDefault()));
+        dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
         dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
             dropZone.classList.remove('dragover');
             handleFileSelection(e.dataTransfer.files);
         });
 
+        thumbnailContainer.addEventListener('click', (e) => {
+            const target = e.target.closest('button');
+            if (!target) return;
+            const identifier = target.dataset.identifier;
+            if (target.classList.contains('thumbnail-remove')) {
+                removePhoto(identifier);
+            } else if (target.classList.contains('thumbnail-edit-date')) {
+                openDateEditor(identifier);
+            }
+        });
+
         clearButton.addEventListener('click', () => {
             photoData = [];
+            existingPhotoIdentifiers.clear();
             renderThumbnails();
+            storyTimelineContainer.innerHTML = '';
             storyTimelineContainer.style.display = 'none';
-            clearButton.style.display = 'none';
-            editButton.style.display = 'none';
+            resultControls.style.display = 'none';
+            setupSection.style.display = 'block';
+            analyzeButton.disabled = true;
         });
 
         editButton.addEventListener('click', () => {
             const isEditing = storyTimelineContainer.classList.toggle('edit-mode');
             editButton.textContent = isEditing ? '儲存變更' : '編輯故事';
-            
-            const editables = storyTimelineContainer.querySelectorAll('.editable');
-            editables.forEach(el => {
-                el.contentEditable = isEditing;
-            });
-
+            storyTimelineContainer.querySelectorAll('.editable').forEach(el => el.contentEditable = isEditing);
             if(isEditing) {
                 storyTimelineContainer.querySelector('.editable').focus();
             }
@@ -396,52 +630,63 @@
                 showErrorModal('請先新增至少一張照片！');
                 return;
             }
-
             analyzeButton.disabled = true;
-            clearButton.style.display = 'none';
-            editButton.style.display = 'none';
-            uploadStatusElement.textContent = '🧠 正在處理所有照片，請稍候...';
+            uploadStatusElement.textContent = '🧠 正在準備所有照片，請稍候...';
             uploadStatusElement.className = 'info';
             storyTimelineContainer.style.display = 'none';
-
-            const finalImageUrls = []; 
-
+            
             try {
+                // --- Default Date Assignment Step ---
+                const photosToUpdate = photoData.filter(p => p.wasDateUnknown && !p.exif['DateTimeOriginal']);
+                if (photosToUpdate.length > 0) {
+                    uploadStatusElement.textContent = `🔧 正在為 ${photosToUpdate.length} 張未知日期的照片設定預設日期...`;
+                    
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const year = yesterday.getFullYear();
+                    const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+                    const day = String(yesterday.getDate()).padStart(2, '0');
+                    const yesterdayString = `${year}:${month}:${day} 00:00:00`;
+
+                    photosToUpdate.forEach(photo => {
+                        photo.exif['DateTimeOriginal'] = { description: yesterdayString };
+                    });
+                    
+                    sortAndRenderThumbnails();
+                }
+
+                // --- Story Generation Step ---
+                uploadStatusElement.textContent = '🧠 正在上傳並分析所有照片...';
+                const finalImageUrls = []; 
                 if (!firebaseConfig.storageBucket) {
                     throw new Error("Firebase 設定錯誤：storageBucket 未被設定。");
                 }
-
                 const selectedStyle = storyStyleSelect.value;
                 const aiPayloadParts = [
-                    { text: `這是一系列按順序排列的照片。我會提供每張照片的內容、它的真實拍攝時間，以及可能的GPS地理位置。請你扮演一個溫暖的朋友，並使用「${selectedStyle}」的風格，為我生成一個包含標題、故事總結和每個事件描述的 JSON 物件。請嚴格遵循以下的 JSON 格式，不要添加任何額外的文字或解釋。\n\n**JSON 格式**:\n{\n  "title": "符合風格的故事標題",\n  "overall_story": "將所有照片串連起來的總結性故事。",\n  "events": [\n    {\n      "time": "照片1的時間（如果未知請推測）",\n      "location": "照片1的地點（如果未知請推測具體名稱）",\n      "description": "照片1的事件描述（100字內）"\n    }\n  ]\n}` }
+                    { text: `這是一系列按順序排列的照片。我會提供每張照片的內容、它的真實拍攝時間，以及可能的GPS地理位置。請你扮演一個溫暖的朋友，並使用「${selectedStyle}」的風格，為我生成一個包含標題、故事總結和每個事件描述的 JSON 物件。請嚴格遵循以下的 JSON 格式，不要添加任何額外的文字或解釋。\n\n**JSON 格式**:\n{\n  "title": "符合風格的故事標題",\n  "overall_story": "將所有照片串連起來的總結性故事。",\n  "events": [\n    {\n      "time": "照片1的時間（請根據照片內容推測一個有創意的描述，例如：陽光普照的午後、寧靜的夜晚）",\n      "location": "照片1的地點（如果未知請推測具體名稱）",\n      "description": "照片1的事件描述（100字內）"\n    }\n  ]\n}` }
                 ];
 
                 for (let i = 0; i < photoData.length; i++) {
                     uploadStatusElement.textContent = `🧠 正在處理第 ${i + 1} / ${photoData.length} 張照片...`;
                     const data = photoData[i];
-                    
-                    const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true, exif: true };
+                    const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
                     const compressedFile = await imageCompression(data.file, options);
-                    
                     const storageRef = ref(storage, `images/${Date.now()}_${compressedFile.name}`);
                     await uploadBytes(storageRef, compressedFile);
                     const downloadURL = await getDownloadURL(storageRef);
                     finalImageUrls.push(downloadURL); 
-                    
                     const base64ImageData = await fileToBase64(compressedFile);
                     
-                    const shootingTime = data.exif['DateTimeOriginal']?.description || '未知';
+                    const shootingTime = data.wasDateUnknown ? '未知' : data.exif['DateTimeOriginal']?.description;
+
                     let locationInfo = '未知';
                     if (data.exif.GPSLatitude && data.exif.GPSLongitude) {
                         const lat = data.exif.GPSLatitude.description.toFixed(4);
                         const lon = data.exif.GPSLongitude.description.toFixed(4);
                         locationInfo = `緯度 ${lat}, 經度 ${lon}`;
                     }
-
                     aiPayloadParts.push({ text: `--- 照片 ${i + 1} (拍攝時間: ${shootingTime}) (拍攝地點: ${locationInfo}) ---` });
-                    aiPayloadParts.push({
-                        inlineData: { mimeType: compressedFile.type, data: base64ImageData }
-                    });
+                    aiPayloadParts.push({ inlineData: { mimeType: compressedFile.type, data: base64ImageData } });
                 }
                 
                 uploadStatusElement.textContent = '🤖 AI 正在生成故事中...';
@@ -459,16 +704,58 @@
                 const rawText = result.candidates[0].content.parts[0].text;
                 const jsonText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
                 const storyData = JSON.parse(jsonText);
+                
+                // --- UPDATED: Build UI with Summary Timeline ---
+                storyTimelineContainer.innerHTML = ''; // Clear previous content
 
-                storyTimelineContainer.innerHTML = `
-                    <div class="timeline-header">
-                        <h2 class="editable">${storyData.title}</h2>
-                        <p class="editable">${storyData.overall_story}</p>
-                    </div>
-                `;
+                // Create Summary Timeline
+                const summaryContainer = document.createElement('div');
+                summaryContainer.className = 'summary-timeline-container';
+                summaryContainer.innerHTML = '<h3>故事總結</h3>';
+                const summaryTimeline = document.createElement('div');
+                summaryTimeline.className = 'summary-timeline';
 
                 storyData.events.forEach((event, index) => {
+                    const originalPhoto = photoData[index];
+                    let dateStr = '日期未知';
+                    const timeStr = originalPhoto.exif['DateTimeOriginal']?.description;
+                    if (timeStr) {
+                        dateStr = timeStr.split(' ')[0].replace(/:/g, '-');
+                    }
+                    const summaryEvent = document.createElement('div');
+                    summaryEvent.className = 'summary-event';
+                    summaryEvent.innerHTML = `
+                        <div class="summary-point"></div>
+                        <div class="summary-details">
+                            <div class="summary-date">${dateStr}</div>
+                            <div class="summary-time">${event.time}</div>
+                            <div class="summary-location">${event.location}</div>
+                        </div>
+                    `;
+                    summaryTimeline.appendChild(summaryEvent);
+                });
+                summaryContainer.appendChild(summaryTimeline);
+                storyTimelineContainer.appendChild(summaryContainer);
+
+                // Create Main Story Header
+                const timelineHeader = document.createElement('div');
+                timelineHeader.className = 'timeline-header';
+                timelineHeader.innerHTML = `
+                    <h2 class="editable">${storyData.title}</h2>
+                    <p class="editable">${storyData.overall_story}</p>
+                `;
+                storyTimelineContainer.appendChild(timelineHeader);
+
+                // Create Individual Story Entries
+                storyData.events.forEach((event, index) => {
                     const imageUrl = finalImageUrls[index];
+                    const originalPhoto = photoData[index];
+                    let dateStr = '日期未知';
+                    const timeStr = originalPhoto.exif['DateTimeOriginal']?.description;
+                    if (timeStr) {
+                        dateStr = timeStr.split(' ')[0].replace(/:/g, '-');
+                    }
+
                     const entry = document.createElement('div');
                     entry.className = 'timeline-entry';
                     entry.innerHTML = `
@@ -476,6 +763,7 @@
                         <div class="timeline-entry-content">
                             <img src="${imageUrl}" alt="故事照片 ${index + 1}">
                             <div class="timeline-entry-meta">
+                                <span class="editable">📅 ${dateStr}</span>
                                 <span class="editable">🕒 ${event.time}</span>
                                 <span class="editable">📍 ${event.location}</span>
                             </div>
@@ -488,15 +776,13 @@
                 storyTimelineContainer.style.display = 'block';
                 uploadStatusElement.textContent = '✅ AI 故事生成完畢！';
                 uploadStatusElement.className = 'success';
-
-                photoData = [];
-                renderThumbnails(); 
-                clearButton.style.display = 'block';
-                editButton.style.display = 'block';
+                
+                setupSection.style.display = 'none';
+                resultControls.style.display = 'block';
 
             } catch (error) {
                 console.error("處理失敗:", error);
-                uploadStatusElement.textContent = `❌ 處理失敗，請查看跳出視窗。`;
+                uploadStatusElement.textContent = `❌ 處理失敗，請查看錯誤訊息。`;
                 uploadStatusElement.className = 'error';
                 showErrorModal(error.message);
                 analyzeButton.disabled = false;
